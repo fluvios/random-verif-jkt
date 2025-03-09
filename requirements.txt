@@ -5,3 +5,7 @@ pydantic
 python-dotenv
 python-multipart
 python-jose[cryptography]
+pandas 
+openpyxl
+alembic 
+psycopg2-binary

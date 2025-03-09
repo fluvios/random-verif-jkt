@@ -8,3 +8,6 @@ class Attendee(Base):
     name = Column(String, nullable=False)
     favorite_member = Column(String, nullable=True)
     address = Column(String, nullable=True)
+    postal_code = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    province = Column(String, nullable=True)

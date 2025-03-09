@@ -5,6 +5,9 @@ class AttendeeBase(BaseModel):
     name: str
     favorite_member: Optional[str] = None
     address: Optional[str] = None
+    postal_code: Optional[str] = None
+    city: Optional[str] = None
+    province: Optional[str] = None
 
 class AttendeeCreate(AttendeeBase):
     pass
