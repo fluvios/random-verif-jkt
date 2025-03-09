@@ -7,12 +7,13 @@ import random
 def calculate_priority(app: Application, theater: Theater, db: Session):
     priority = 0
 
+    # existing priority logic...
     if theater.show_name.lower() in (app.attendee.address or "").lower():
         priority += 3
 
     num_losses = db.query(Application).filter(
         Application.user_id == app.user_id,
-        Application.status == StatusEnum.lose
+        Application.status == StatusEnum.LOSE
     ).count()
     priority += num_losses
 
@@ -25,7 +26,21 @@ def calculate_priority(app: Application, theater: Theater, db: Session):
     if app.attendee.favorite_member in theater_member_names:
         priority += 5
 
+    # Penalty logic:
+    no_shows = db.query(Attendance).filter(
+        Attendance.attendee_id == app.user_id,
+        Attendance.attended == False
+    ).count()
+
+    # Penalize heavily for no-shows
+    penalty = no_shows * 5  # Adjust penalty strength here
+    priority -= penalty
+
+    # Ensure priority does not fall below zero
+    priority = max(priority, 0)
+
     return priority
+
 
 def select_ofc_attendees(db: Session, theater_id: int, max_attendees: int):
     theater = db.query(Theater).filter(Theater.id == theater_id).first()

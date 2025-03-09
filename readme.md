@@ -1,6 +1,6 @@
 # Random Attendee Selector 🎟️
 
-This is a FastAPI-based application designed to randomly select attendees for theater events based on prioritized logic, authentication via OAuth2 Bearer tokens, and advanced selection criteria.
+This is a FastAPI-based application designed to randomly select attendees for theater events based on prioritized logic, authentication via OAuth2 Bearer tokens, advanced selection criteria, and attendance tracking to ensure fairness.
 
 ## 📦 Project Structure
 
@@ -44,6 +44,10 @@ random-attendee-selector/
   - OFC attendees.
   - General attendees (balanced percentage-based selection).
 
+- **Attendance Tracking and Penalties:**
+  - Attendees who verify but fail to attend receive penalties in future selections.
+  - Encourages reliable attendance.
+
 ## 🔧 Installation
 
 1. Clone the repository:
@@ -64,12 +68,18 @@ pip install -r requirements.txt
 ```env
 APP_NAME="Random Attendee Selector"
 DEBUG=True
-DATABASE_URL="sqlite:///./attendees.db"
+DATABASE_URL="postgresql://username:password@localhost:5432/attendees_db"
 SECRET_KEY="your_generated_secret_key"
 ALGORITHM="HS256"
 ```
 
-4. Run the application:
+4. Run database migrations:
+
+```bash
+alembic upgrade head
+```
+
+5. Run the application:
 
 ```bash
 uvicorn app.main:app --reload
@@ -104,6 +114,18 @@ POST /api/select_attendees/ofc
 
 ```http
 POST /api/select_attendees/general
+```
+
+- Import Attendees via Excel or CSV:
+
+```http
+POST /api/import_attendees
+```
+
+- Update Attendance status:
+
+```http
+POST /api/update_attendance
 ```
 
 ## 📝 Example Request
