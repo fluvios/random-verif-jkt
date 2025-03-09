@@ -3,7 +3,8 @@ from pydantic import BaseSettings
 
 class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./attendees.db"
-    APP_NAME: str = "Random Attendee Selector"
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "jkt482025")
+    APP_NAME: str = "Theater Verifier"
     DEBUG: bool = True
 
     class Config:

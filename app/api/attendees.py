@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal
-from app.services.selector import select_random_attendees
+from app.core.security import verify_token
+from app.services.selector import select_ofc_attendees, select_general_attendees
 
 router = APIRouter()
 
@@ -12,14 +13,12 @@ def get_db():
     finally:
         db.close()
 
-# API endpoints
-@app.post("/select_attendees/ofc")
-def select_ofc_attendees(selection: SelectionInput, db: Session = Depends(get_db)):
-    attendees = select_attendees(selection.theater_id, selection.maximum_attendees, TicketTypeEnum.OFC, db)
+@router.post("/select_attendees/ofc")
+def select_ofc(theater_id: int, maximum_attendees: int, db: Session = Depends(get_db), user: str = Depends(verify_token)):
+    attendees = select_ofc_attendees(db, theater_id, maximum_attendees)
     return {"selected_attendees": attendees}
 
-@app.post("/select_attendees/general")
-def select_general_attendees(selection: SelectionInput, db: Session = Depends(get_db)):
-    attendees = select_attendees(selection.theater_id, selection.maximum_attendees, TicketTypeEnum.GENERAL, db)
+@router.post("/select_attendees/general")
+def select_general(theater_id: int, maximum_attendees: int, db: Session = Depends(get_db), user: str = Depends(verify_token)):
+    attendees = select_general_attendees(db, theater_id, maximum_attendees)
     return {"selected_attendees": attendees}
-
