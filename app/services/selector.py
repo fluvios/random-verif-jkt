@@ -1,13 +1,21 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from app.models import Theater, Application, Attendee
+from datetime import datetime
+from app.models import Theater, Application, Attendee, Blacklist
 from app.enums.ticket import StatusEnum, TicketTypeEnum, SpecialEventEnum
 import random
+
+def is_blacklisted(attendee_id: int, db: Session) -> bool:
+    record = db.query(Blacklist).filter(
+        Blacklist.attendee_id == attendee_id,
+        Blacklist.start_date <= datetime.utcnow(),
+        (Blacklist.end_date == None) | (Blacklist.end_date >= datetime.utcnow())
+    ).first()
+    return record is not None
 
 def calculate_priority(app: Application, theater: Theater, db: Session):
     priority = 0
 
-    # existing priority logic...
     if theater.show_name.lower() in (app.attendee.address or "").lower():
         priority += 3
 
@@ -26,21 +34,16 @@ def calculate_priority(app: Application, theater: Theater, db: Session):
     if app.attendee.favorite_member in theater_member_names:
         priority += 5
 
-    # Penalty logic:
     no_shows = db.query(Attendance).filter(
         Attendance.attendee_id == app.user_id,
         Attendance.attended == False
     ).count()
 
-    # Penalize heavily for no-shows
-    penalty = no_shows * 5  # Adjust penalty strength here
+    penalty = no_shows * 5
     priority -= penalty
-
-    # Ensure priority does not fall below zero
     priority = max(priority, 0)
 
     return priority
-
 
 def select_ofc_attendees(db: Session, theater_id: int, max_attendees: int):
     theater = db.query(Theater).filter(Theater.id == theater_id).first()
@@ -49,19 +52,19 @@ def select_ofc_attendees(db: Session, theater_id: int, max_attendees: int):
 
     eligible_apps = db.query(Application).filter(
         Application.theater_id == theater_id,
-        Application.status == StatusEnum.lose,
+        Application.status == StatusEnum.LOSE,
         Application.ticket_type == TicketTypeEnum.OFC
     ).all()
 
-    if not eligible_apps:
-        raise HTTPException(status_code=404, detail="No eligible OFC attendees")
-
     attendees_pool = []
     for app in eligible_apps:
+        if is_blacklisted(app.user_id, db):
+            continue
+
         num_losses = db.query(Application).filter(
             Application.user_id == app.user_id,
             Application.show_type == app.show_type,
-            Application.status == StatusEnum.lose
+            Application.status == StatusEnum.LOSE
         ).count()
 
         if num_losses >= 10 and random.randint(1, 100) <= random.randint(80, 90):
@@ -96,17 +99,17 @@ def select_general_attendees(db: Session, theater_id: int, max_attendees: int):
 
     eligible_general_apps = db.query(Application).filter(
         Application.theater_id == theater_id,
-        Application.status == StatusEnum.lose,
+        Application.status == StatusEnum.LOSE,
         Application.ticket_type == TicketTypeEnum.GENERAL
     ).all()
-
-    if not eligible_general_apps:
-        raise HTTPException(status_code=404, detail="No eligible general attendees")
 
     ofc_applied_attendees = []
     pure_general_attendees = []
 
     for app in eligible_general_apps:
+        if is_blacklisted(app.user_id, db):
+            continue
+
         ofc_applied_before = db.query(Application).filter(
             Application.user_id == app.user_id,
             Application.ticket_type == TicketTypeEnum.OFC
